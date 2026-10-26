@@ -777,6 +777,7 @@ function staffView(){
       <div class="tools">
         ${can('claim') ? `<button class="btn" data-act="claim">Take next in line</button>` : ''}
         ${can('auto') ? `<button class="ghost" data-act="auto">Auto-assign waiting</button>` : ''}
+        ${S.user.role !== 'viewer' && S.osticketQueueUrl ? `<a class="ghost" href="${esc(S.osticketQueueUrl)}" target="_blank" rel="noopener noreferrer">Work tickets in osTicket</a>` : ''}
         <button class="ghost" data-act="refresh">Refresh</button>
         ${S.user.role === 'viewer' ? '<small>Read-only access.</small>' : ''}
         <small>${S.synced ? 'Updated ' + esc(S.synced.toLocaleTimeString()) : ''}${CONFIG.syncUrl ? '' : ' &middot; assignments stored on this device'}</small>
