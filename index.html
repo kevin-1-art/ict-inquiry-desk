@@ -133,7 +133,7 @@ const CONFIG = {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.inquiries.v1', USERS_KEY = 'ictdesk.users.v1', SOURCES_KEY = 'ictdesk.sources.v1';
-const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','update_own'], viewer:[] };
+const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','assign','update_own'], viewer:[] };
 
 const S = { inq:[], assign:{}, users:[], sources:[], user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
 
@@ -322,6 +322,9 @@ async function setStatus(id, status){
 }
 async function assignTo(id, user){
   if (!can('assign')) return;
+  const ticket = S.inq.find(item => item.id === id);
+  if (!ticket || statusOf(ticket) === 'Resolved') { toast('Resolved tickets cannot be reassigned.'); return render(); }
+  if (user && !agents().some(agent => agent.username === user)) return;
   const a = rec(id) || { notes:[] };
   S.assign[id] = { ...a, agent:user, status:user ? 'Assigned' : 'Open', updated:Date.now() };
   render(); await push(id, 'update');
@@ -705,7 +708,7 @@ function detailHTML(){
     <dl>${fields}</dl>
     ${edit && a.agent ? `<div class="ctrl"><select data-act="status" data-id="${esc(t.id)}" aria-label="Status">
         ${['Assigned','In progress','Resolved'].map(s => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('')}</select></div>` : ''}
-    ${can('assign') ? `<div class="ctrl"><select data-act="assign" data-id="${esc(t.id)}" aria-label="Assign to">
+    ${can('assign') && st !== 'Resolved' ? `<div class="ctrl"><select data-act="assign" data-id="${esc(t.id)}" aria-label="Assign to">
         <option value="">Unassigned (back to queue)</option>
         ${agents().map(u => `<option value="${esc(u.username)}" ${a.agent === u.username ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>` : ''}
     <h3>Notes</h3><div class="notes">${notes || '<small>No notes yet.</small>'}</div>

@@ -52,7 +52,7 @@ On first use, create the administrator account from the setup screen. Administra
 | Role | Can do |
 |---|---|
 | `admin` | See everything, take next in line, auto-assign, reassign or unassign, update any ticket |
-| `agent` | See the queue, take **only the oldest waiting inquiry**, update and add notes to their own tickets |
+| `agent` | See the queue, take **only the oldest waiting inquiry**, assign or reassign unresolved tickets, update and add notes to their own tickets |
 | `viewer` | Read-only |
 
 Accounts are saved in the current browser's local storage and are not shared across browsers or devices, even when an inquiry endpoint is configured. For production, implement authentication and user management in a secured backend; the static page's local sign-in is only a convenience gate, not real access control.
