@@ -61,6 +61,8 @@ Accounts are saved in the current browser's local storage and are not shared acr
 
 An administrator can open **Ticket sources** in the staff dashboard and add multiple Apps Script web-app URLs. For each source, enter its deployed URL, the `SECRET` configured in that source's `apps-script.gs`, and optionally a display name. Each source must use this project's Apps Script API and return inquiries from `GET ?key=...&what=inquiries`. The desk reads the sources on refresh and displays their tickets alongside the main queue; source tickets are identified separately and show their source name.
 
+The same admin tab includes a configurable **osTicket queue link**, prefilled with the URSB staff queue. **Open osTicket queue** opens the configured HTTPS URL in a new tab. This is a shortcut only: the `/scp/tickets.php` staff page is not fetched or imported into the desk. URL settings are local to the administrator's browser. For live osTicket ticket data and replies, see [OSTICKET-INTEGRATION.md](./OSTICKET-INTEGRATION.md).
+
 External source settings and keys are saved in the administrator's browser only. Other staff browsers need their own source configuration. External tickets are read-only at their source; assignments and notes are saved to the desk's configured `syncUrl` (or this browser if there is no shared assignment store). Apps Script access keys are sent to their endpoint and are visible to users with access to that browser. This static design is not suitable for secrets or sensitive ticket data; use a secured backend for production.
 
 The main inquiry source and external sources are read in order: the configured main source first, followed by external sources in the order they were added. FIFO is preserved within each source; separate systems do not provide a shared arrival order.
@@ -87,6 +89,10 @@ The form sends one POST with `Content-Type: text/plain` and this JSON body, and 
 ```
 
 Point `submitUrl` at your own service if you have one. To enable staff replies, the service must also implement the authenticated `POST {op:"reply", id, message, by}` operation; staff actions use `syncUrl` and `syncKey` as described above. The receipt/reply email behavior described here is provided by `apps-script.gs`.
+
+## osTicket queue and replies
+
+To keep osTicket as the ticket system of record while managing assignments in this desk, see [OSTICKET-INTEGRATION.md](./OSTICKET-INTEGRATION.md) for the middleware/plugin API contract. osTicket's `open.php` form and native API key alone do not provide the ticket-list and thread-reply operations required. The contract is not yet implemented or configured, so the public desk is not connected to osTicket.
 
 ## Honest limits of a no-backend design
 

@@ -132,10 +132,11 @@ const CONFIG = {
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.inquiries.v1', USERS_KEY = 'ictdesk.users.v1', SOURCES_KEY = 'ictdesk.sources.v1';
+const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.inquiries.v1', USERS_KEY = 'ictdesk.users.v1', SOURCES_KEY = 'ictdesk.sources.v1', OSTICKET_QUEUE_KEY = 'ictdesk.osticket.queue-url.v1';
+const DEFAULT_OSTICKET_QUEUE_URL = 'https://helpdesk.ursb.go.ug/scp/tickets.php?queue=2';
 const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','assign','update_own'], viewer:[] };
 
-const S = { inq:[], assign:{}, users:[], sources:[], user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
+const S = { inq:[], assign:{}, users:[], sources:[], osticketQueueUrl:'', user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', osticketQueueError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
 
 const can = p => !!S.user && PERMS[S.user.role].includes(p);
 const nameOf = u => (S.users.find(x => x.username === u) || {}).name || u;
@@ -418,6 +419,26 @@ function saveSources(){
   try { localStorage.setItem(SOURCES_KEY, JSON.stringify(S.sources)); }
   catch { throw new Error('Could not save ticket sources in this browser. Check available storage.'); }
 }
+function validateQueueUrl(url){
+  if (!url) return '';
+  let parsed;
+  try { parsed = new URL(url); } catch { return 'Enter a valid osTicket queue URL or leave it blank.'; }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return 'The osTicket queue URL must use HTTPS and must not contain credentials.';
+  return '';
+}
+function loadQueueUrl(){
+  const stored = localStorage.getItem(OSTICKET_QUEUE_KEY);
+  const url = stored === null ? DEFAULT_OSTICKET_QUEUE_URL : stored;
+  const error = validateQueueUrl(url);
+  if (error) throw new Error(error);
+  return url;
+}
+function saveQueueUrl(url){
+  const error = validateQueueUrl(url);
+  if (error) throw new Error(error);
+  try { localStorage.setItem(OSTICKET_QUEUE_KEY, url); }
+  catch { throw new Error('Could not save the osTicket queue URL in this browser. Check available storage.'); }
+}
 function validSourceDetails(url, key){
   let parsed;
   try { parsed = new URL(url); } catch { return 'Enter a valid Apps Script deployment URL.'; }
@@ -555,6 +576,16 @@ async function removeSource(id){
   render();
   toast(S.error ? 'Source removed, but refresh failed.' : 'Ticket source removed.');
 }
+function saveOsticketQueue(f){
+  if (!can('update_any')) return;
+  const url = f.elements.queueUrl.value.trim();
+  try { saveQueueUrl(url); }
+  catch (e) { S.osticketQueueError = e.message; return render(); }
+  S.osticketQueueUrl = url;
+  S.osticketQueueError = '';
+  render();
+  toast(url ? 'osTicket queue link saved in this browser.' : 'osTicket queue link cleared.');
+}
 function logout(){ S.user = null; S.view = 'client'; S.open = null; try { sessionStorage.removeItem(UKEY); } catch {} clearInterval(timer); render(); }
 function startTimer(){
   clearInterval(timer);
@@ -657,6 +688,16 @@ function usersView(){
 function sourcesView(){
   return `<section class="card formcard">
     <h2>External ticket sources</h2>
+    <h3>osTicket queue link</h3>
+    <p class="muted">Configure the staff queue page. This opens osTicket in a new tab; it does not import tickets into this desk. Queue URL settings are saved in this browser only.</p>
+    ${S.osticketQueueError ? `<p class="err" role="alert">${esc(S.osticketQueueError)}</p>` : ''}
+    <form data-form="osticket-queue">
+      <div class="field"><label for="osticket-queue-url">osTicket queue URL</label><input id="osticket-queue-url" name="queueUrl" type="url" value="${esc(S.osticketQueueUrl)}" placeholder="https://helpdesk.example.org/scp/tickets.php?queue=2"></div>
+      <button class="btn">Save osTicket queue link</button>
+      ${S.osticketQueueUrl ? ` <a class="ghost" href="${esc(S.osticketQueueUrl)}" target="_blank" rel="noopener noreferrer">Open osTicket queue</a>` : ''}
+    </form>
+    <hr style="border:0;border-top:1px solid var(--line);margin:24px 0">
+    <h3>Ticket data sources</h3>
     <p class="muted">Add Apps Script web apps that return ticket data using <code>GET ?key=...&amp;what=inquiries</code>. Tickets are read-only in this desk; manage assignments here.</p>
     <p class="muted"><small>Each source must use the ICT Inquiry Desk Apps Script API. Source URLs and access keys are saved in this browser and are not shared with other staff automatically.</small></p>
     ${S.sourceError ? `<p class="err" role="alert">${esc(S.sourceError)}</p>` : ''}
@@ -785,6 +826,7 @@ app.addEventListener('submit', async e => {
   else if (f.dataset.form === 'setup') await createAdmin(f);
   else if (f.dataset.form === 'create-user') await createUser(f);
   else if (f.dataset.form === 'add-source') await addSource(f);
+  else if (f.dataset.form === 'osticket-queue') saveOsticketQueue(f);
   else if (f.dataset.form === 'inquiry') await submitInquiry(f);
   else if (f.dataset.form === 'note') await addNote(f.dataset.id, f.elements.t.value);
   else if (f.dataset.form === 'reply') await sendClientReply(f.dataset.id, f.elements.message.value);
@@ -798,6 +840,8 @@ app.addEventListener('input', e => {
   S.assign = loadLocal();
   try { S.users = loadUsers(); S.sources = loadSources(); }
   catch (e) { S.error = e.message; S.view = 'setup'; render(); return; }
+  try { S.osticketQueueUrl = loadQueueUrl(); }
+  catch (e) { S.osticketQueueError = e.message; }
   let su = null; try { su = sessionStorage.getItem(UKEY); } catch {}
   const u = S.users.find(x => x.username === su);
   if (u) { S.user = { username:u.username, name:u.name, role:u.role }; S.view = 'staff'; }
