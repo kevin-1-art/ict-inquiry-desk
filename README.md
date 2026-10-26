@@ -14,8 +14,9 @@ Try it first: serve the folder on `localhost` and open the page. With no endpoin
 1. Create a new Google Sheet (any name).
 2. **Extensions > Apps Script**, paste the contents of `apps-script.gs`.
 3. Change `SECRET` to a long random string.
-4. **Deploy > New deployment > Web app**. Execute as **Me**, who has access **Anyone**. Authorize when asked.
-5. Copy the web-app URL.
+4. In Apps Script, select and run `authorizeEmail`, then approve the requested mail permission. This lets the web app send from the Google account that owns the script.
+5. **Deploy > New deployment > Web app**. Execute as **Me**, who has access **Anyone**. Authorize when asked.
+6. Copy the web-app URL.
 
 In `index.html`, edit the CONFIG block:
 
@@ -33,7 +34,12 @@ After you change `apps-script.gs` later, use **Deploy > Manage deployments > Edi
 |---|---|---|
 | `POST {op:"submit", ...}` (client form) | No | Validates, adds a row to the **Inquiries** tab, returns a reference such as `INQ-0007` |
 | `GET ?what=inquiries` | Yes | Returns all inquiries to staff |
+| `POST {op:"reply", id, message}` | Yes | Emails a staff reply to the address on the ticket and records the sent reply |
 | `GET` / `POST claim, update` | Yes | Shared assignments, with a check that stops two agents taking the same ticket |
+
+New client inquiries receive an email receipt from the script owner's Google account. Staff can email clients from a ticket's **Email replies** section; internal **Notes** remain private. A saved inquiry remains saved if its receipt email fails, and the client sees a warning instead of a false email-success message.
+
+After updating an existing Apps Script deployment, go to **Deploy > Manage deployments > Edit > New version**. If the new mail permission was not granted, run `authorizeEmail` in the Apps Script editor and approve it, then deploy the new version. Google Apps Script daily recipient quotas apply.
 
 Protection on the public submit action: required-field and email checks, length limits, a hidden honeypot field, one submission per email per 30 seconds, a desk-wide cap of 120 per hour, and formulas in typed text are neutralised before they reach the Sheet. Edit the constants at the top of the script to change the limits.
 
@@ -80,7 +86,7 @@ The form sends one POST with `Content-Type: text/plain` and this JSON body, and 
 {"op":"submit","name":"","email":"","phone":"","subject":"","priority":"Normal","message":"","website":""}
 ```
 
-Point `submitUrl` at your own service if you have one. Staff reading and assignments use `syncUrl` as described above.
+Point `submitUrl` at your own service if you have one. To enable staff replies, the service must also implement the authenticated `POST {op:"reply", id, message, by}` operation; staff actions use `syncUrl` and `syncKey` as described above. The receipt/reply email behavior described here is provided by `apps-script.gs`.
 
 ## Honest limits of a no-backend design
 

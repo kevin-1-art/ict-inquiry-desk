@@ -135,7 +135,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.inquiries.v1', USERS_KEY = 'ictdesk.users.v1', SOURCES_KEY = 'ictdesk.sources.v1';
 const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','update_own'], viewer:[] };
 
-const S = { inq:[], assign:{}, users:[], sources:[], user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', synced:null, sent:null, sending:false };
+const S = { inq:[], assign:{}, users:[], sources:[], user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
 
 const can = p => !!S.user && PERMS[S.user.role].includes(p);
 const nameOf = u => (S.users.find(x => x.username === u) || {}).name || u;
@@ -186,9 +186,9 @@ function parseCSV(text){
   return rows.filter(r => r.some(x => x.trim() !== ''));
 }
 const pad4 = n => 'INQ-' + String(n).padStart(4, '0');
-function rowOf(n, x, id=pad4(n), source=''){
+function rowOf(n, x, id=pad4(n), source='', sourceId='', sourceTicketId=''){
   return { id, n, ts:x.ts || '', name:x.name || '', email:x.email || '', phone:x.phone || '', subject:x.subject || (x.message || '').slice(0,70) || '(no subject)',
-    message:x.message || '', priority:x.priority || '',
+    message:x.message || '', priority:x.priority || '', sourceId, sourceTicketId,
     source, raw:[...(source ? [['Source',source]] : []),['Timestamp',x.ts],['Name',x.name],['Email',x.email],['Phone',x.phone],['Subject',x.subject],['Priority',x.priority],['Message',x.message]].filter(p => p[1]) };
 }
 function localInquiries(){
@@ -239,7 +239,7 @@ async function loadInquiries(){
     if (!result.ok || !Array.isArray(result.inquiries)) throw new Error('Ticket source "' + source.name + '" rejected the request. Check its URL and access key.');
     for (const [i, ticket] of result.inquiries.entries()) {
       const n = inquiries.length + 1;
-      inquiries.push(rowOf(n, ticket, 'EXT-' + source.id + '-' + pad4(i + 1), source.name));
+      inquiries.push(rowOf(n, ticket, 'EXT-' + source.id + '-' + pad4(i + 1), source.name, source.id, pad4(i + 1)));
     }
   }
   S.inq = inquiries;
@@ -258,7 +258,7 @@ async function submitInquiry(f){
   const btn = f.querySelector('button.btn'), err = $('#formerr');
   err.textContent = ''; S.sending = true; btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    let ref;
+    let ref, emailSent = false, emailError = '';
     if (!CONFIG.submitUrl) {
       const list = JSON.parse(localStorage.getItem(DKEY) || '[]');
       if (!Array.isArray(list)) throw new Error('Stored inquiries are invalid. Clear this site’s local storage to continue.');
@@ -271,8 +271,10 @@ async function submitInquiry(f){
       const j = await r.json();
       if (!j.ok) throw new Error(j.error === 'rate' ? 'Please wait a moment before sending another inquiry.' : j.error === 'busy' ? 'The desk is receiving a lot of requests. Try again in a few minutes.' : j.error === 'invalid' ? 'Check the email address and that every required field is filled in.' : 'The desk could not accept this inquiry.');
       ref = j.ref;
+      emailSent = j.emailSent === true;
+      emailError = j.emailError || '';
     }
-    S.sent = { ref, local:!CONFIG.submitUrl };
+    S.sent = { ref, local:!CONFIG.submitUrl, emailSent, emailError };
     render();
   } catch (e) {
     S.sending = false; btn.disabled = false; btn.textContent = 'Send inquiry';
@@ -329,6 +331,53 @@ async function addNote(id, text){
   if (!canEdit(id) || !text.trim()) return;
   const a = rec(id); a.notes = (a.notes || []).concat([{ by:S.user.username, at:Date.now(), text:text.trim() }]); a.updated = Date.now();
   render(); await push(id, 'update');
+}
+function replyEndpoint(ticket){
+  if (ticket.sourceId) {
+    const source = S.sources.find(item => item.id === ticket.sourceId);
+    return source ? { url:source.url, key:source.key } : null;
+  }
+  const url = CONFIG.syncUrl || CONFIG.submitUrl;
+  return url && CONFIG.syncKey ? { url, key:CONFIG.syncKey } : null;
+}
+async function sendClientReply(id, message){
+  if (!canEdit(id) || S.replying) return;
+  const ticket = S.inq.find(item => item.id === id);
+  if (!ticket || !ticket.email || !message.trim()) return;
+  const endpoint = replyEndpoint(ticket);
+  if (!endpoint) {
+    S.replyError = 'Email replies require a configured Apps Script endpoint and access key.';
+    return render();
+  }
+  S.replying = true;
+  S.replyError = '';
+  render();
+  try {
+    const response = await fetch(endpoint.url, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body:JSON.stringify({ key:endpoint.key, op:'reply', id:ticket.sourceTicketId || ticket.id, message:message.trim(), by:S.user.username })
+    });
+    if (!response.ok) throw new Error('The email service returned HTTP ' + response.status + '.');
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.message || (result.error === 'email_failed' ? 'The reply could not be emailed.' : result.error === 'not_found' ? 'The ticket was not found by its email service.' : 'The email service refused the reply (' + (result.error || 'unknown') + ').'));
+    const record = rec(id) || { notes:[] };
+    if (result.record) S.assign[id] = result.record;
+    else {
+      record.replies = (record.replies || []).concat([{ by:S.user.username, at:Date.now(), text:message.trim() }]);
+      record.updated = Date.now();
+      S.assign[id] = record;
+    }
+    saveLocal();
+    S.replying = false;
+    S.replyError = '';
+    render();
+    toast('Reply emailed to the client.');
+  } catch (e) {
+    S.replying = false;
+    S.replyError = String(e.message || e);
+    render();
+  }
 }
 
 /* ---------- auth (a gate, not real security: see README) ---------- */
@@ -530,6 +579,7 @@ function clientView(){
         <p>Your reference is <code>${esc(sent.ref)}</code>. Keep it if you follow up.</p>
         <p class="muted">ICT handles requests in the order they arrive and replies to the email address you gave.</p>
         ${sent.local ? '<p class="muted"><small>This inquiry is saved only in this browser. Configure a shared endpoint for staff to access it from other devices.</small></p>' : ''}
+        ${sent.local ? '<p class="muted"><small>Email confirmation is unavailable until an Apps Script endpoint is configured.</small></p>' : sent.emailSent ? '<p class="muted"><small>A confirmation email has been sent.</small></p>' : `<p class="err" role="alert">${esc(sent.emailError || 'Your ticket was received, but a confirmation email could not be sent. Please contact ICT.')}</p>`}
         <button class="ghost" data-act="again">Send another inquiry</button></div></div>`
     : `<form class="card formcard" data-form="inquiry" aria-label="Inquiry form">
         <div class="fgrid">
@@ -646,6 +696,9 @@ function detailHTML(){
   const qpos = queue().findIndex(x => x.id === t.id) + 1;
   const fields = t.raw.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
   const notes = (a.notes || []).map(n => `<div class="note">${esc(n.text)}<small>${esc(nameOf(n.by))} &middot; ${esc(new Date(n.at).toLocaleString())}</small></div>`).join('');
+  const replies = (a.replies || []).map(reply => `<div class="note">${esc(reply.text)}<small>Emailed by ${esc(nameOf(reply.by))} &middot; ${esc(new Date(reply.at).toLocaleString())}</small></div>`).join('');
+  const canReply = canEdit(t.id) && !!t.email;
+  const endpoint = replyEndpoint(t);
   return `<aside class="card detail" id="detail">
     <h2>${esc(t.subject)}</h2>
     <div class="chips" style="justify-content:flex-start">${prioChip(t.priority)}<span class="chip st-${st.toLowerCase().replace(/ /g,'-')}">${esc(st)}</span>${a.agent ? `<span class="chip">${esc(nameOf(a.agent))}</span>` : ''}${qpos ? `<span class="chip">Queue position ${qpos}</span>` : ''}</div>
@@ -657,6 +710,8 @@ function detailHTML(){
         ${agents().map(u => `<option value="${esc(u.username)}" ${a.agent === u.username ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>` : ''}
     <h3>Notes</h3><div class="notes">${notes || '<small>No notes yet.</small>'}</div>
     ${edit && a.agent ? `<form data-form="note" data-id="${esc(t.id)}"><div class="field"><textarea name="t" rows="3" placeholder="Add an update for the team" required></textarea></div><button class="ghost">Add note</button></form>` : ''}
+    <h3 style="margin-top:20px">Email replies</h3><div class="notes">${replies || '<small>No client replies sent yet.</small>'}</div>
+    ${canReply && endpoint ? `<form data-form="reply" data-id="${esc(t.id)}"><div class="field"><label for="reply-${esc(t.id)}">Reply to ${esc(t.email)}</label><textarea id="reply-${esc(t.id)}" name="message" rows="4" maxlength="5000" placeholder="Write a reply to the client" required></textarea></div>${S.replyError ? `<p class="err" role="alert">${esc(S.replyError)}</p>` : ''}<button class="btn" ${S.replying ? 'disabled' : ''}>${S.replying ? 'Sending email…' : 'Send email reply'}</button></form>` : canReply ? `<p class="muted"><small>Configure an Apps Script endpoint and access key to email clients.</small></p>` : ''}
   </aside>`;
 }
 function staffView(){
@@ -707,7 +762,7 @@ app.addEventListener('click', async e => {
   else if (act === 'logout') logout();
   else if (act === 'again') { S.sent = null; render(); }
   else if (act === 'tab') { S.tab = b.dataset.tab; S.open = null; S.userError = ''; S.sourceError = ''; render(); }
-  else if (act === 'open') { S.open = b.dataset.id; render(); if (matchMedia('(max-width:860px)').matches) { const d = $('#detail'); if (d) d.scrollIntoView({ behavior:'smooth', block:'nearest' }); } }
+  else if (act === 'open') { S.open = b.dataset.id; S.replyError = ''; render(); if (matchMedia('(max-width:860px)').matches) { const d = $('#detail'); if (d) d.scrollIntoView({ behavior:'smooth', block:'nearest' }); } }
   else if (act === 'claim') { b.disabled = true; await claimNext(); }
   else if (act === 'auto') { b.disabled = true; await autoAssign(); }
   else if (act === 'refresh') { await refresh(); toast(S.error ? 'Refresh failed.' : 'Up to date.'); }
@@ -729,6 +784,7 @@ app.addEventListener('submit', async e => {
   else if (f.dataset.form === 'add-source') await addSource(f);
   else if (f.dataset.form === 'inquiry') await submitInquiry(f);
   else if (f.dataset.form === 'note') await addNote(f.dataset.id, f.elements.t.value);
+  else if (f.dataset.form === 'reply') await sendClientReply(f.dataset.id, f.elements.message.value);
 });
 app.addEventListener('input', e => {
   if (e.target.id === 'search') { S.q = e.target.value; const l = $('#list'); if (l) l.innerHTML = listHTML(); }
