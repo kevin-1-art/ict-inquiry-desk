@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ICT Inquiry Desk</title>
+<style>
+:root{--bg:#f3f7ff;--card:#fff;--ink:#1d2625;--muted:#66738a;--line:#d9e3f2;--accent:#2563eb;--accent-ink:#fff;--warn:#b4531a;--ok:#2f7d3b;--bad:#a63030;--chip:#e8efff;--shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root{--bg:#101827;--card:#172235;--ink:#e8eef8;--muted:#9aaac2;--line:#2b3a53;--accent:#60a5fa;--accent-ink:#071629;--warn:#e5934f;--ok:#6cc27a;--bad:#e27a7a;--chip:#243452;--shadow:none}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{line-height:1.2;letter-spacing:-.015em;margin:0 0 .5em}
+h1{font-size:clamp(26px,4vw,38px)}
+h2{font-size:20px}
+h3{font-size:16px}
+p{margin:0 0 .8em}
+code{background:var(--chip);padding:1px 6px;border-radius:6px;font-size:.9em}
+small,.muted{color:var(--muted)}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.top{border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+.bar{display:flex;align-items:center;justify-content:space-between;min-height:60px;gap:12px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);text-decoration:none}
+.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-size:15px}
+nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.who{font-size:14px}.who em{font-style:normal;background:var(--chip);border-radius:99px;padding:2px 9px;margin-left:6px;font-size:12px}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 16px;font-weight:600}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 14px}
+.ghost.on{border-color:var(--accent);color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+label{display:block;font-weight:600;font-size:13px;margin:0 0 6px}
+.field{margin-bottom:14px}
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:32px;padding-top:36px;padding-bottom:48px;align-items:start}
+.steps{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:12px}
+.steps li{display:flex;gap:12px;align-items:flex-start}
+.steps b{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--chip);font-size:13px}
+.formcard{padding:22px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.fgrid .full{grid-column:1/-1}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.done{padding:10px 4px}
+textarea{resize:vertical}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.narrow{max-width:420px;margin:48px auto;padding:28px}
+.err{color:var(--bad);font-size:14px;margin:0 0 12px}
+.banner{background:var(--chip);border-bottom:1px solid var(--line);padding:8px 0;font-size:13px}
+.banner.bad{background:color-mix(in srgb,var(--bad) 14%,var(--card))}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0 16px}
+.stat{padding:14px 16px}.stat b{display:block;font-size:26px;line-height:1.1}.stat span{color:var(--muted);font-size:13px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:8px 12px;color:var(--muted);font-weight:600}
+.tab.on{color:var(--accent);border-color:var(--accent)}
+.split{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start;padding-bottom:48px}
+.list{display:grid;gap:8px}
+.row{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.row select{width:auto;min-width:110px}.row .ghost{flex:none}
+.row:hover{border-color:var(--accent)}.row.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pos{flex:none;display:grid;place-items:center;min-width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
+.rmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.rmain b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rmain small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.chip{background:var(--chip);border-radius:99px;padding:2px 9px;font-size:12px;white-space:nowrap}
+.chip.hi{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,var(--card))}
+.chip.st-resolved{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--card))}
+.chip.st-in-progress,.chip.st-assigned{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card))}
+.detail{padding:20px;position:sticky;top:76px}
+.detail dl{margin:14px 0;display:grid;gap:10px}
+.detail dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.detail dd{margin:2px 0 0;white-space:pre-wrap;word-break:break-word}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ctrl select{width:auto;min-width:140px}
+.notes{display:grid;gap:8px;margin:10px 0}
+.note{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px}
+.note small{display:block}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;max-width:90vw;z-index:20}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+footer{border-top:1px solid var(--line);padding:18px 0;color:var(--muted);font-size:13px}
+@media (max-width:860px){.hero,.split{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.detail{position:static}.fgrid{grid-template-columns:1fr}.chips{display:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================  EDIT THIS BLOCK  ============================
+   See README.md for how to get each URL. Everything here is visible to anyone
+   who views the page source, so never put real secrets in it.            */
+const CONFIG = {
+  orgName: "ICT Inquiry Desk",
+
+  // Where the inquiry form posts. Use your Apps Script web-app URL (see apps-script.gs).
+  // Leave "" to save inquiries in this browser only.
+  submitUrl: "",
+
+  // ONLY if you still use a Google Form: its responses sheet published as CSV. Normally leave "".
+  sheetCsvUrl: "",
+
+  // Same Apps Script URL + the secret from apps-script.gs. Staff read inquiries from it and
+  // share assignments through it. (If sheetCsvUrl above is set, inquiries come from that instead.)
+  syncUrl: "",
+  syncKey: "",
+
+  refreshSeconds: 60,       // how often staff screens re-check for new inquiries
+  maxActivePerAgent: 5,     // an agent cannot hold more open tickets than this
+
+  // Words used to find each column in your form's response sheet (case-insensitive, partial match).
+  columns: {
+    timestamp: ["timestamp"],
+    name:      ["name"],
+    email:     ["email"],
+    subject:   ["subject", "topic", "title"],
+    message:   ["message", "describe", "details", "issue", "description"],
+    priority:  ["priority", "urgency"]
+  },
+
+  // Roles:  admin  = everything (take, auto-assign, reassign, update any, unassign)
+  //         agent  = take next in line, update and note their own tickets
+  //         viewer = read-only
+};
+/* ========================================================================== */
+</script>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.inquiries.v1', USERS_KEY = 'ictdesk.users.v1', SOURCES_KEY = 'ictdesk.sources.v1';
+const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','update_own'], viewer:[] };
+
+const S = { inq:[], assign:{}, users:[], sources:[], user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', synced:null, sent:null, sending:false };
+
+const can = p => !!S.user && PERMS[S.user.role].includes(p);
+const nameOf = u => (S.users.find(x => x.username === u) || {}).name || u;
+const agents = () => S.users.filter(u => u.role === 'agent');
+const rec = id => S.assign[id];
+const statusOf = t => (rec(t.id) && rec(t.id).status) || 'Open';
+// FIFO: waiting = not assigned and not resolved, ordered by arrival (sheet row order)
+const queue = () => S.inq.filter(t => { const a = rec(t.id); return !a || (!a.agent && a.status !== 'Resolved'); }).sort((x,y) => x.n - y.n);
+const active = u => S.inq.filter(t => { const a = rec(t.id); return a && a.agent === u && a.status !== 'Resolved'; });
+const canEdit = id => can('update_any') || (can('update_own') && rec(id) && rec(id).agent === S.user.username);
+
+let tt;
+function toast(m){ const e = $('#toast'); e.textContent = m; e.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => e.classList.remove('show'), 4200); }
+
+/* ---------- storage + optional shared sync ---------- */
+const loadLocal = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
+const saveLocal = () => { try { localStorage.setItem(KEY, JSON.stringify(S.assign)); } catch {} };
+
+async function pull(){
+  if (!CONFIG.syncUrl) return;
+  const r = await fetch(CONFIG.syncUrl + '?key=' + encodeURIComponent(CONFIG.syncKey), { cache:'no-store' });
+  const j = await r.json();
+  if (!j.ok) throw new Error('Shared store refused the request (' + (j.error || 'unknown') + ')');
+  for (const id in j.records) { const a = S.assign[id], b = j.records[id]; if (!a || (b.updated || 0) > (a.updated || 0)) S.assign[id] = b; }
+  saveLocal();
+}
+async function push(id, op){
+  saveLocal();
+  if (!CONFIG.syncUrl) return { ok:true };
+  try {
+    const r = await fetch(CONFIG.syncUrl, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ key:CONFIG.syncKey, op, id, record:S.assign[id] }) });
+    return await r.json();
+  } catch { toast('Could not reach the shared store. Change kept on this device only.'); return { ok:false }; }
+}
+
+/* ---------- inquiries from the Google Sheet ---------- */
+function parseCSV(text){
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i+1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i+1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += c;
+  }
+  if (cell.length || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim() !== ''));
+}
+const pad4 = n => 'INQ-' + String(n).padStart(4, '0');
+function rowOf(n, x, id=pad4(n), source=''){
+  return { id, n, ts:x.ts || '', name:x.name || '', email:x.email || '', phone:x.phone || '', subject:x.subject || (x.message || '').slice(0,70) || '(no subject)',
+    message:x.message || '', priority:x.priority || '',
+    source, raw:[...(source ? [['Source',source]] : []),['Timestamp',x.ts],['Name',x.name],['Email',x.email],['Phone',x.phone],['Subject',x.subject],['Priority',x.priority],['Message',x.message]].filter(p => p[1]) };
+}
+function localInquiries(){
+  const inquiries = JSON.parse(localStorage.getItem(DKEY) || '[]');
+  if (!Array.isArray(inquiries)) throw new Error('Stored inquiries are invalid. Clear this site’s local storage to continue.');
+  return inquiries.map((x, i) => rowOf(i + 1, x));
+}
+async function loadPrimaryInquiries(){
+  if (!CONFIG.sheetCsvUrl && !CONFIG.syncUrl) return localInquiries();
+  if (!CONFIG.sheetCsvUrl) {
+    const u = new URL(CONFIG.syncUrl);
+    u.searchParams.set('key', CONFIG.syncKey);
+    u.searchParams.set('what', 'inquiries');
+    const r = await fetch(u, { cache:'no-store' });
+    if (!r.ok) throw new Error('Could not read the inquiry store (HTTP ' + r.status + ').');
+    const j = await r.json();
+    if (!j.ok) throw new Error('The inquiry store refused the request (' + (j.error || 'unknown') + '). Check syncKey.');
+    return (j.inquiries || []).map((x, i) => rowOf(i + 1, x));
+  }
+  const u = CONFIG.sheetCsvUrl + (CONFIG.sheetCsvUrl.includes('?') ? '&' : '?') + '_=' + Date.now();
+  const res = await fetch(u, { cache:'no-store' });
+  if (!res.ok) throw new Error('Could not read the responses sheet (HTTP ' + res.status + '). Check it is published or shared.');
+  const rows = parseCSV(await res.text());
+  if (!rows.length) return [];
+  const H = rows[0], used = new Set(), ix = {};
+  for (const k in CONFIG.columns) {
+    ix[k] = H.findIndex((h, i) => !used.has(i) && CONFIG.columns[k].some(w => h.toLowerCase().includes(w)));
+    if (ix[k] > -1) used.add(ix[k]);
+  }
+  const g = (r, k) => ix[k] > -1 ? (r[ix[k]] || '').trim() : '';
+  return rows.slice(1).map((r, i) => {
+    const msg = g(r, 'message');
+    return { id:'INQ-'+String(i+1).padStart(4,'0'), n:i+1, ts:g(r,'timestamp'), name:g(r,'name'), email:g(r,'email'),
+      subject: g(r,'subject') || msg.slice(0,70) || '(no subject)', message:msg, priority:g(r,'priority'),
+      raw: H.map((h, j) => [h, (r[j] || '').trim()]).filter(p => p[1]) };
+  });
+}
+async function loadInquiries(){
+  const inquiries = await loadPrimaryInquiries();
+  for (const source of S.sources) {
+    const u = new URL(source.url);
+    u.searchParams.set('key', source.key);
+    u.searchParams.set('what', 'inquiries');
+    u.searchParams.set('_', String(Date.now()));
+    const response = await fetch(u, { cache:'no-store' });
+    if (!response.ok) throw new Error('Could not read ticket source "' + source.name + '" (HTTP ' + response.status + ').');
+    const result = await response.json();
+    if (!result.ok || !Array.isArray(result.inquiries)) throw new Error('Ticket source "' + source.name + '" rejected the request. Check its URL and access key.');
+    for (const [i, ticket] of result.inquiries.entries()) {
+      const n = inquiries.length + 1;
+      inquiries.push(rowOf(n, ticket, 'EXT-' + source.id + '-' + pad4(i + 1), source.name));
+    }
+  }
+  S.inq = inquiries;
+}
+async function refresh(quiet){
+  try { S.error = ''; await loadInquiries(); await pull(); S.synced = new Date(); }
+  catch (e) { S.error = String(e.message || e); }
+  if (!quiet) render();
+}
+
+/* ---------- client submission ---------- */
+async function submitInquiry(f){
+  if (S.sending) return;
+  const v = n => (f.elements[n].value || '').trim();
+  const d = { name:v('name'), email:v('email'), phone:v('phone'), subject:v('subject'), priority:v('priority'), message:v('message'), website:v('website') };
+  const btn = f.querySelector('button.btn'), err = $('#formerr');
+  err.textContent = ''; S.sending = true; btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    let ref;
+    if (!CONFIG.submitUrl) {
+      const list = JSON.parse(localStorage.getItem(DKEY) || '[]');
+      if (!Array.isArray(list)) throw new Error('Stored inquiries are invalid. Clear this site’s local storage to continue.');
+      list.push({ ...d, ts:new Date().toLocaleString() }); delete list[list.length-1].website;
+      try { localStorage.setItem(DKEY, JSON.stringify(list)); }
+      catch { throw new Error('Could not save inquiry in this browser. Check available storage.'); }
+      ref = pad4(list.length);
+    } else {
+      const r = await fetch(CONFIG.submitUrl, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ op:'submit', ...d }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error === 'rate' ? 'Please wait a moment before sending another inquiry.' : j.error === 'busy' ? 'The desk is receiving a lot of requests. Try again in a few minutes.' : j.error === 'invalid' ? 'Check the email address and that every required field is filled in.' : 'The desk could not accept this inquiry.');
+      ref = j.ref;
+    }
+    S.sent = { ref, local:!CONFIG.submitUrl };
+    render();
+  } catch (e) {
+    S.sending = false; btn.disabled = false; btn.textContent = 'Send inquiry';
+    err.textContent = e.message.startsWith('Could not save inquiry') || e.message.startsWith('Stored inquiries') ? e.message : /^(Please|The desk|Check)/.test(e.message) ? e.message : 'Could not reach the inquiry desk. Check your connection and try again.';
+    return;
+  }
+  S.sending = false;
+}
+
+/* ---------- actions ---------- */
+async function claimNext(){
+  if (!can('claim')) return;
+  await refresh(true);
+  const q = queue();
+  if (!q.length) { toast('The queue is empty.'); return render(); }
+  const mine = active(S.user.username).length;
+  if (mine >= CONFIG.maxActivePerAgent) { toast('You already hold ' + mine + ' open tickets. Resolve one first.'); return render(); }
+  const t = q[0], now = Date.now();
+  S.assign[t.id] = { agent:S.user.username, status:'In progress', claimedAt:now, updated:now, notes:[] };
+  const r = await push(t.id, 'claim');
+  if (r.conflict) { S.assign[t.id] = r.record; saveLocal(); toast('Someone took that one a moment ago. Press again for the next in line.'); }
+  else { S.tab = 'mine'; S.open = t.id; toast('You took ' + t.id + ' (first in line).'); }
+  render();
+}
+async function autoAssign(){
+  if (!can('auto')) return;
+  await refresh(true);
+  let n = 0;
+  for (const t of queue()) {
+    const pool = agents().map(a => ({ a, l:active(a.username).length })).filter(x => x.l < CONFIG.maxActivePerAgent).sort((x,y) => x.l - y.l);
+    if (!pool.length) break;
+    const now = Date.now();
+    S.assign[t.id] = { agent:pool[0].a.username, status:'Assigned', claimedAt:now, updated:now, notes:[] };
+    const r = await push(t.id, 'claim');
+    if (r.conflict) { S.assign[t.id] = r.record; continue; }
+    n++;
+  }
+  toast(n ? 'Assigned ' + n + ' inquiries, oldest first, to the least busy agents.' : 'Nothing assigned (queue empty or agents at capacity).');
+  render();
+}
+async function setStatus(id, status){
+  if (!canEdit(id) || !rec(id)) return;
+  const a = rec(id); a.status = status; a.updated = Date.now(); if (status === 'Resolved') a.resolvedAt = a.updated;
+  render(); await push(id, 'update');
+}
+async function assignTo(id, user){
+  if (!can('assign')) return;
+  const a = rec(id) || { notes:[] };
+  S.assign[id] = { ...a, agent:user, status:user ? 'Assigned' : 'Open', updated:Date.now() };
+  render(); await push(id, 'update');
+  toast(user ? id + ' assigned to ' + nameOf(user) + '.' : id + ' returned to the queue at its original place.');
+}
+async function addNote(id, text){
+  if (!canEdit(id) || !text.trim()) return;
+  const a = rec(id); a.notes = (a.notes || []).concat([{ by:S.user.username, at:Date.now(), text:text.trim() }]); a.updated = Date.now();
+  render(); await push(id, 'update');
+}
+
+/* ---------- auth (a gate, not real security: see README) ---------- */
+let fails = 0, lockUntil = 0, timer;
+async function sha(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join(''); }
+function loadUsers(){
+  try {
+    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    if (!Array.isArray(users) || users.some(u => !u || typeof u.username !== 'string' || typeof u.name !== 'string' || !['admin','agent','viewer'].includes(u.role) || typeof u.hash !== 'string')) {
+      throw new Error('Stored user list is invalid.');
+    }
+    return users;
+  } catch (e) {
+    if (e instanceof SyntaxError) throw new Error('Stored user list could not be read. Clear this site’s local storage to set up an administrator again.');
+    throw e;
+  }
+}
+function saveUsers(){
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(S.users)); }
+  catch { throw new Error('Could not save users in this browser. Check available storage.'); }
+}
+function loadSources(){
+  try {
+    const sources = JSON.parse(localStorage.getItem(SOURCES_KEY) || '[]');
+    if (!Array.isArray(sources) || sources.some(s => !s || typeof s.id !== 'string' || typeof s.name !== 'string' || typeof s.url !== 'string' || typeof s.key !== 'string')) {
+      throw new Error('Stored ticket sources are invalid.');
+    }
+    return sources;
+  } catch (e) {
+    if (e instanceof SyntaxError) throw new Error('Stored ticket sources could not be read. Clear this site’s local storage to configure sources again.');
+    throw e;
+  }
+}
+function saveSources(){
+  try { localStorage.setItem(SOURCES_KEY, JSON.stringify(S.sources)); }
+  catch { throw new Error('Could not save ticket sources in this browser. Check available storage.'); }
+}
+function validSourceDetails(url, key){
+  let parsed;
+  try { parsed = new URL(url); } catch { return 'Enter a valid Apps Script deployment URL.'; }
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'script.google.com' || !/^\/macros\/s\/[^/]+\/exec\/?$/.test(parsed.pathname)) {
+    return 'Use an Apps Script web-app URL in the form https://script.google.com/macros/s/.../exec.';
+  }
+  if (!key || key.length > 256) return 'Enter the source’s access key (up to 256 characters).';
+  if (S.sources.some(s => s.url === url)) return 'That source URL has already been added.';
+  return '';
+}
+function validUserDetails(username, name, password){
+  if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(username)) return 'Username must be 3–32 characters: lowercase letters, numbers, dots, underscores, or hyphens.';
+  if (!name || name.length > 80) return 'Enter a name no longer than 80 characters.';
+  if (password.length < 12 || password.length > 128) return 'Password must be between 12 and 128 characters.';
+  if (S.users.some(u => u.username === username)) return 'That username is already in use.';
+  return '';
+}
+async function login(u, p){
+  if (Date.now() < lockUntil) { S.loginError = 'Too many attempts. Try again in ' + Math.ceil((lockUntil - Date.now())/1000) + 's.'; return render(); }
+  if (!(window.crypto && crypto.subtle)) { S.loginError = 'Sign-in needs HTTPS (or localhost).'; return render(); }
+  const h = await sha(p);
+  const user = S.users.find(x => x.username === u.trim().toLowerCase() && x.hash === h);
+  if (!user) { if (++fails >= 5) { lockUntil = Date.now() + 30000; fails = 0; } S.loginError = 'Wrong username or password.'; return render(); }
+  S.user = { username:user.username, name:user.name, role:user.role }; S.view = 'staff'; S.loginError = ''; S.tab = 'queue'; S.open = null;
+  try { sessionStorage.setItem(UKEY, user.username); } catch {}
+  await refresh(); startTimer();
+}
+async function createAdmin(f){
+  if (S.users.length) return;
+  if (!(window.crypto && crypto.subtle)) { S.userError = 'Account setup needs HTTPS (or localhost).'; return render(); }
+  const username = f.elements.username.value.trim().toLowerCase(), name = f.elements.name.value.trim(), password = f.elements.password.value;
+  const error = validUserDetails(username, name, password);
+  if (error) { S.userError = error; return render(); }
+  S.users = [{ username, name, role:'admin', hash:await sha(password) }];
+  try { saveUsers(); }
+  catch (e) { S.users = []; S.userError = e.message; return render(); }
+  S.user = { username, name, role:'admin' }; S.view = 'staff'; S.tab = 'queue'; S.userError = '';
+  try { sessionStorage.setItem(UKEY, username); } catch {}
+  await refresh(); startTimer();
+}
+async function createUser(f){
+  if (!can('update_any')) return;
+  const username = f.elements.username.value.trim().toLowerCase(), name = f.elements.name.value.trim(), password = f.elements.password.value, role = f.elements.role.value;
+  const error = validUserDetails(username, name, password);
+  if (error) { S.userError = error; return render(); }
+  if (!['admin','agent','viewer'].includes(role)) { S.userError = 'Choose a valid role.'; return render(); }
+  S.users.push({ username, name, role, hash:await sha(password) });
+  try { saveUsers(); }
+  catch (e) { S.users.pop(); S.userError = e.message; return render(); }
+  S.userError = ''; render(); toast('User account created.');
+}
+function remainingAdmin(username){
+  return S.users.filter(user => user.username !== username && user.role === 'admin').length;
+}
+async function updateUserRole(username, role){
+  if (!can('update_any')) return;
+  const user = S.users.find(x => x.username === username);
+  if (!user || !['admin','agent','viewer'].includes(role)) return;
+  if (username === S.user.username) { S.userError = 'You cannot change your own role. Ask another administrator to change it.'; return render(); }
+  if (user.role === 'admin' && role !== 'admin' && remainingAdmin(username) === 0) {
+    S.userError = 'The last administrator cannot be demoted. Create another administrator first.';
+    return render();
+  }
+  const previousRole = user.role;
+  user.role = role;
+  try { saveUsers(); }
+  catch (e) { user.role = previousRole; S.userError = e.message; return render(); }
+  if (role === 'viewer') {
+    for (const ticket of S.inq.filter(item => rec(item.id) && rec(item.id).agent === username && rec(item.id).status !== 'Resolved')) {
+      const assignment = rec(ticket.id);
+      assignment.agent = '';
+      assignment.status = 'Open';
+      assignment.updated = Date.now();
+      await push(ticket.id, 'update');
+    }
+  }
+  S.userError = '';
+  render();
+  toast('User role updated.');
+}
+async function deleteUser(username){
+  if (!can('update_any')) return;
+  const index = S.users.findIndex(user => user.username === username);
+  if (index < 0) return;
+  const user = S.users[index];
+  if (username === S.user.username) { S.userError = 'You cannot delete your own account. Ask another administrator.'; return render(); }
+  if (user.role === 'admin' && remainingAdmin(username) === 0) {
+    S.userError = 'The last administrator cannot be deleted. Create another administrator first.';
+    return render();
+  }
+  const assigned = S.inq.filter(ticket => rec(ticket.id) && rec(ticket.id).agent === username && rec(ticket.id).status !== 'Resolved');
+  const prompt = assigned.length
+    ? `Delete ${user.name} and return ${assigned.length} open ticket(s) to the queue? Ticket notes will be kept.`
+    : `Delete the account for ${user.name}?`;
+  if (!window.confirm(prompt)) return;
+  S.users.splice(index, 1);
+  try { saveUsers(); }
+  catch (e) { S.users.splice(index, 0, user); S.userError = e.message; return render(); }
+  for (const ticket of assigned) {
+    const assignment = rec(ticket.id);
+    assignment.agent = '';
+    assignment.status = 'Open';
+    assignment.updated = Date.now();
+    await push(ticket.id, 'update');
+  }
+  S.userError = '';
+  render();
+  toast('User account deleted.');
+}
+async function addSource(f){
+  if (!can('update_any')) return;
+  const url = f.elements.sourceUrl.value.trim(), key = f.elements.sourceKey.value.trim();
+  const error = validSourceDetails(url, key);
+  if (error) { S.sourceError = error; return render(); }
+  const parsed = new URL(url), name = f.elements.sourceName.value.trim() || parsed.hostname;
+  const source = { id:crypto.randomUUID(), name, url, key };
+  S.sources.push(source);
+  try { saveSources(); }
+  catch (e) { S.sources.pop(); S.sourceError = e.message; return render(); }
+  S.sourceError = '';
+  await refresh(true);
+  S.tab = 'sources';
+  render();
+  toast(S.error ? 'Source saved, but tickets could not be loaded. Check the source settings.' : 'Ticket source added.');
+}
+async function removeSource(id){
+  if (!can('update_any')) return;
+  const index = S.sources.findIndex(source => source.id === id);
+  if (index < 0) return;
+  const [source] = S.sources.splice(index, 1);
+  try { saveSources(); }
+  catch (e) { S.sources.splice(index, 0, source); S.sourceError = e.message; return render(); }
+  S.sourceError = '';
+  await refresh(true);
+  render();
+  toast(S.error ? 'Source removed, but refresh failed.' : 'Ticket source removed.');
+}
+function logout(){ S.user = null; S.view = 'client'; S.open = null; try { sessionStorage.removeItem(UKEY); } catch {} clearInterval(timer); render(); }
+function startTimer(){
+  clearInterval(timer);
+  timer = setInterval(async () => {
+    if (!S.user) return;
+    await refresh(true);
+    const a = document.activeElement;
+    if (!(a && /INPUT|TEXTAREA|SELECT/.test(a.tagName))) render();
+  }, Math.max(15, CONFIG.refreshSeconds) * 1000);
+}
+
+/* ---------- views ---------- */
+function header(){
+  return `<header class="top"><div class="wrap bar">
+    <a class="brand" href="#" data-act="go-client"><span class="mark" aria-hidden="true">&#9703;</span><span>${esc(CONFIG.orgName)}</span></a>
+    <nav>${S.user
+      ? `<span class="who">${esc(S.user.name)}<em>${esc(S.user.role)}</em></span><button class="ghost" data-act="logout">Sign out</button>`
+      : `<button class="ghost ${S.view==='client'?'on':''}" data-act="go-client">Submit an inquiry</button><button class="ghost ${S.view==='login'?'on':''}" data-act="go-login">ICT staff</button>`}
+    </nav></div></header>`;
+}
+function clientView(){
+  const sent = S.sent;
+  const panel = sent
+    ? `<div class="card formcard"><div class="done"><h2>Inquiry received</h2>
+        <p>Your reference is <code>${esc(sent.ref)}</code>. Keep it if you follow up.</p>
+        <p class="muted">ICT handles requests in the order they arrive and replies to the email address you gave.</p>
+        ${sent.local ? '<p class="muted"><small>This inquiry is saved only in this browser. Configure a shared endpoint for staff to access it from other devices.</small></p>' : ''}
+        <button class="ghost" data-act="again">Send another inquiry</button></div></div>`
+    : `<form class="card formcard" data-form="inquiry" aria-label="Inquiry form">
+        <div class="fgrid">
+          <div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" autocomplete="name" maxlength="100" required></div>
+          <div class="field"><label for="f-email">Email address</label><input id="f-email" name="email" type="email" autocomplete="email" maxlength="120" required></div>
+          <div class="field"><label for="f-phone">Phone (optional)</label><input id="f-phone" name="phone" type="tel" autocomplete="tel" maxlength="30"></div>
+          <div class="field"><label for="f-prio">Priority</label><select id="f-prio" name="priority"><option>Normal</option><option>Low</option><option>High</option><option>Urgent</option></select></div>
+          <div class="field full"><label for="f-subject">Subject</label><input id="f-subject" name="subject" maxlength="150" required></div>
+          <div class="field full"><label for="f-msg">What is happening?</label><textarea id="f-msg" name="message" rows="6" maxlength="4000" required></textarea></div>
+        </div>
+        <div class="hp" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p class="err" id="formerr" role="alert"></p>
+        <button class="btn">Send inquiry</button>
+      </form>`;
+  return `<section class="wrap hero">
+    <div>
+      <h1>Tell ICT what you need.</h1>
+      <p class="muted">Send an inquiry or report a problem. Requests are handled strictly in the order they arrive, so the longest-waiting request is always picked up first.</p>
+      <ol class="steps">
+        <li><b>1</b><span><strong>Fill in the form.</strong><br><small>Give a clear subject and describe what is happening.</small></span></li>
+        <li><b>2</b><span><strong>You join the queue.</strong><br><small>An ICT officer takes the oldest waiting request next.</small></span></li>
+        <li><b>3</b><span><strong>We contact you.</strong><br><small>Replies go to the email address you provide.</small></span></li>
+      </ol>
+      <p class="muted" style="margin-top:22px"><small>Please do not put passwords or other secrets in the form.</small></p>
+    </div>
+    ${panel}
+  </section>`;
+}
+function loginView(){
+  return `<section class="card narrow"><h2>ICT staff sign-in</h2>
+    <p class="muted">Access depends on your role.</p>
+    ${S.loginError ? `<p class="err">${esc(S.loginError)}</p>` : ''}
+    <form data-form="login">
+      <div class="field"><label for="u">Username</label><input id="u" autocomplete="username" required autofocus></div>
+      <div class="field"><label for="p">Password</label><input id="p" type="password" autocomplete="current-password" required></div>
+      <button class="btn" style="width:100%">Sign in</button>
+    </form>
+  </section>`;
+}
+function setupView(){
+  return `<section class="card narrow"><h2>Set up the administrator</h2>
+    <p class="muted">Create the first administrator account. No default or demo login is provided.</p>
+    ${S.userError || S.error ? `<p class="err" role="alert">${esc(S.userError || S.error)}</p>` : ''}
+    <form data-form="setup">
+      <div class="field"><label for="setup-name">Full name</label><input id="setup-name" name="name" maxlength="80" required></div>
+      <div class="field"><label for="setup-username">Username</label><input id="setup-username" name="username" autocomplete="username" minlength="3" maxlength="32" required></div>
+      <div class="field"><label for="setup-password">Password (12 characters minimum)</label><input id="setup-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></div>
+      <button class="btn" style="width:100%">Create administrator</button>
+    </form>
+    <p class="muted" style="margin-top:16px"><small>This account is stored in this browser only. Use a secured backend for shared accounts and real access control.</small></p>
+  </section>`;
+}
+function usersView(){
+  return `<section class="card formcard">
+    <h2>Manage staff accounts</h2>
+    <p class="muted">Accounts are stored in this browser. Share credentials securely with each user.</p>
+    ${S.userError ? `<p class="err" role="alert">${esc(S.userError)}</p>` : ''}
+    <form data-form="create-user">
+      <div class="fgrid">
+        <div class="field"><label for="user-name">Full name</label><input id="user-name" name="name" maxlength="80" required></div>
+        <div class="field"><label for="user-username">Username</label><input id="user-username" name="username" autocomplete="off" minlength="3" maxlength="32" required></div>
+        <div class="field"><label for="user-password">Temporary password (12 characters minimum)</label><input id="user-password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></div>
+        <div class="field"><label for="user-role">Role</label><select id="user-role" name="role"><option value="agent">Agent</option><option value="viewer">Viewer</option><option value="admin">Admin</option></select></div>
+      </div>
+      <button class="btn">Create user</button>
+    </form>
+    <h3 style="margin-top:24px">Existing accounts</h3>
+    <p class="muted"><small>For safety, you cannot change or delete your own account or remove the last administrator. Switching someone to viewer or deleting their account returns their open tickets to the queue and keeps ticket notes.</small></p>
+    <div class="list">${S.users.map(u => `<div class="row"><span class="rmain"><b>${esc(u.name)}</b><small>${esc(u.username)}</small></span><select data-act="user-role" data-user="${esc(u.username)}" aria-label="Role for ${esc(u.name)}" ${u.username === S.user.username ? 'disabled' : ''}>${['admin','agent','viewer'].map(role => `<option value="${role}" ${u.role === role ? 'selected' : ''}>${role[0].toUpperCase()+role.slice(1)}</option>`).join('')}</select><button class="ghost" data-act="delete-user" data-user="${esc(u.username)}" ${u.username === S.user.username ? 'disabled' : ''}>Delete</button></div>`).join('')}</div>
+  </section>`;
+}
+function sourcesView(){
+  return `<section class="card formcard">
+    <h2>External ticket sources</h2>
+    <p class="muted">Add Apps Script web apps that return ticket data using <code>GET ?key=...&amp;what=inquiries</code>. Tickets are read-only in this desk; manage assignments here.</p>
+    <p class="muted"><small>Each source must use the ICT Inquiry Desk Apps Script API. Source URLs and access keys are saved in this browser and are not shared with other staff automatically.</small></p>
+    ${S.sourceError ? `<p class="err" role="alert">${esc(S.sourceError)}</p>` : ''}
+    <form data-form="add-source">
+      <div class="fgrid">
+        <div class="field"><label for="source-name">Source name (optional)</label><input id="source-name" name="sourceName" maxlength="80" placeholder="Defaults to script.google.com"></div>
+        <div class="field"><label for="source-url">Apps Script web-app URL</label><input id="source-url" name="sourceUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" required></div>
+        <div class="field full"><label for="source-key">Access key for this source</label><input id="source-key" name="sourceKey" type="password" autocomplete="new-password" maxlength="256" required></div>
+      </div>
+      <button class="btn">Add ticket source</button>
+    </form>
+    <h3 style="margin-top:24px">Configured sources (${S.sources.length})</h3>
+    ${S.sources.length ? `<div class="list">${S.sources.map(source => `<div class="row"><span class="rmain"><b>${esc(source.name)}</b><small>${esc(source.url)}</small></span><button class="ghost" data-act="remove-source" data-id="${esc(source.id)}" aria-label="Remove ${esc(source.name)}">Remove</button></div>`).join('')}</div>` : '<p class="empty">No external sources configured.</p>'}
+  </section>`;
+}
+const prioChip = p => p ? `<span class="chip ${/high|urgent|critical/i.test(p) ? 'hi' : ''}">${esc(p)}</span>` : '';
+function row(t, pos){
+  const a = rec(t.id) || {}, st = statusOf(t);
+  return `<button class="row ${S.open === t.id ? 'sel' : ''}" data-act="open" data-id="${esc(t.id)}">
+    ${pos ? `<span class="pos" title="Position in queue">${pos}</span>` : ''}
+    <span class="rmain"><b>${esc(t.subject)}</b><small>${esc(t.id)} &middot; ${esc(t.name || 'Unknown')} &middot; ${esc(t.ts)}${t.source ? ' · ' + esc(t.source) : ''}</small></span>
+    <span class="chips">${prioChip(t.priority)}<span class="chip st-${st.toLowerCase().replace(/ /g,'-')}">${esc(st)}</span>${a.agent ? `<span class="chip">${esc(nameOf(a.agent))}</span>` : ''}</span>
+  </button>`;
+}
+function listHTML(){
+  let items;
+  if (S.tab === 'queue') items = queue().map((t, i) => [t, i + 1]);
+  else if (S.tab === 'mine') items = S.inq.filter(t => rec(t.id) && rec(t.id).agent === S.user.username)
+      .sort((x, y) => (statusOf(x) === 'Resolved') - (statusOf(y) === 'Resolved') || x.n - y.n).map(t => [t, 0]);
+  else items = S.inq.slice().sort((a, b) => b.n - a.n).map(t => [t, 0]);
+  const f = S.q.trim().toLowerCase();
+  if (f) items = items.filter(([t]) => (t.id + ' ' + t.subject + ' ' + t.name + ' ' + t.email + ' ' + t.message).toLowerCase().includes(f));
+  if (!items.length) return `<div class="empty">${S.tab === 'queue' ? 'Nobody is waiting. Nice.' : S.tab === 'mine' ? 'Nothing assigned to you.' : 'No inquiries found.'}</div>`;
+  return items.map(([t, p]) => row(t, p)).join('');
+}
+function detailHTML(){
+  const t = S.inq.find(x => x.id === S.open);
+  if (!t) return `<aside class="card detail empty" id="detail">Select an inquiry to see its details.</aside>`;
+  const a = rec(t.id) || { status:'Open', notes:[] }, st = statusOf(t), edit = canEdit(t.id);
+  const qpos = queue().findIndex(x => x.id === t.id) + 1;
+  const fields = t.raw.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
+  const notes = (a.notes || []).map(n => `<div class="note">${esc(n.text)}<small>${esc(nameOf(n.by))} &middot; ${esc(new Date(n.at).toLocaleString())}</small></div>`).join('');
+  return `<aside class="card detail" id="detail">
+    <h2>${esc(t.subject)}</h2>
+    <div class="chips" style="justify-content:flex-start">${prioChip(t.priority)}<span class="chip st-${st.toLowerCase().replace(/ /g,'-')}">${esc(st)}</span>${a.agent ? `<span class="chip">${esc(nameOf(a.agent))}</span>` : ''}${qpos ? `<span class="chip">Queue position ${qpos}</span>` : ''}</div>
+    <dl>${fields}</dl>
+    ${edit && a.agent ? `<div class="ctrl"><select data-act="status" data-id="${esc(t.id)}" aria-label="Status">
+        ${['Assigned','In progress','Resolved'].map(s => `<option ${s === st ? 'selected' : ''}>${s}</option>`).join('')}</select></div>` : ''}
+    ${can('assign') ? `<div class="ctrl"><select data-act="assign" data-id="${esc(t.id)}" aria-label="Assign to">
+        <option value="">Unassigned (back to queue)</option>
+        ${agents().map(u => `<option value="${esc(u.username)}" ${a.agent === u.username ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>` : ''}
+    <h3>Notes</h3><div class="notes">${notes || '<small>No notes yet.</small>'}</div>
+    ${edit && a.agent ? `<form data-form="note" data-id="${esc(t.id)}"><div class="field"><textarea name="t" rows="3" placeholder="Add an update for the team" required></textarea></div><button class="ghost">Add note</button></form>` : ''}
+  </aside>`;
+}
+function staffView(){
+  const me = S.user.username, q = queue();
+  const inprog = S.inq.filter(t => ['In progress','Assigned'].includes(statusOf(t))).length;
+  const done = S.inq.filter(t => statusOf(t) === 'Resolved').length;
+  const tabs = [['queue','Waiting (' + q.length + ')'], ...(can('claim') ? [['mine','My tickets (' + active(me).length + ')']] : []), ['all','All'], ...(can('update_any') ? [['users','Manage users'],['sources','Ticket sources']] : [])];
+  if (!tabs.some(x => x[0] === S.tab)) S.tab = 'queue';
+  const workspace = S.tab === 'users' ? usersView() : S.tab === 'sources' ? sourcesView() : `<div class="split"><div class="list" id="list">${listHTML()}</div>${detailHTML()}</div>`;
+  return `${!CONFIG.sheetCsvUrl && !CONFIG.syncUrl && !S.sources.length ? `<div class="banner"><div class="wrap">Local mode: inquiries, assignments, accounts, and source settings are stored only in this browser. Configure a shared backend for multi-device access.</div></div>` : ''}
+    ${S.error ? `<div class="banner bad"><div class="wrap">${esc(S.error)}</div></div>` : ''}
+    <div class="wrap">
+      <div class="stats">
+        <div class="card stat"><b>${q.length}</b><span>Waiting</span></div>
+        <div class="card stat"><b>${inprog}</b><span>In progress</span></div>
+        <div class="card stat"><b>${done}</b><span>Resolved</span></div>
+        <div class="card stat"><b>${active(me).length}</b><span>Mine, open</span></div>
+      </div>
+      <div class="tools">
+        ${can('claim') ? `<button class="btn" data-act="claim">Take next in line</button>` : ''}
+        ${can('auto') ? `<button class="ghost" data-act="auto">Auto-assign waiting</button>` : ''}
+        <button class="ghost" data-act="refresh">Refresh</button>
+        ${S.user.role === 'viewer' ? '<small>Read-only access.</small>' : ''}
+        <small>${S.synced ? 'Updated ' + esc(S.synced.toLocaleTimeString()) : ''}${CONFIG.syncUrl ? '' : ' &middot; assignments stored on this device'}</small>
+      </div>
+      <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}">${esc(l)}</button>`).join('')}</div>
+      <div class="field"><input id="search" type="search" placeholder="Search inquiries" value="${esc(S.q)}" aria-label="Search inquiries"></div>
+      ${workspace}
+    </div>`;
+}
+function render(){
+  let body;
+  if (S.view === 'staff' && S.user) body = staffView();
+  else if (S.view === 'login') body = loginView();
+  else if (S.view === 'setup') body = setupView();
+  else body = clientView();
+  $('#app').innerHTML = header() + '<main>' + body + '</main><footer><div class="wrap">Requests are handled first in, first out.</div></footer>';
+}
+
+/* ---------- events ---------- */
+const app = $('#app');
+app.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.tagName === 'SELECT') return;
+  const act = b.dataset.act;
+  if (act === 'go-client') { e.preventDefault(); if (S.user) return; S.view = 'client'; render(); }
+  else if (act === 'go-login') { S.view = S.users.length ? 'login' : 'setup'; S.loginError = ''; S.userError = ''; render(); }
+  else if (act === 'logout') logout();
+  else if (act === 'again') { S.sent = null; render(); }
+  else if (act === 'tab') { S.tab = b.dataset.tab; S.open = null; S.userError = ''; S.sourceError = ''; render(); }
+  else if (act === 'open') { S.open = b.dataset.id; render(); if (matchMedia('(max-width:860px)').matches) { const d = $('#detail'); if (d) d.scrollIntoView({ behavior:'smooth', block:'nearest' }); } }
+  else if (act === 'claim') { b.disabled = true; await claimNext(); }
+  else if (act === 'auto') { b.disabled = true; await autoAssign(); }
+  else if (act === 'refresh') { await refresh(); toast(S.error ? 'Refresh failed.' : 'Up to date.'); }
+  else if (act === 'remove-source') await removeSource(b.dataset.id);
+  else if (act === 'delete-user') await deleteUser(b.dataset.user);
+});
+app.addEventListener('change', e => {
+  const s = e.target.closest('select[data-act]'); if (!s) return;
+  if (s.dataset.act === 'status') setStatus(s.dataset.id, s.value);
+  if (s.dataset.act === 'assign') assignTo(s.dataset.id, s.value);
+  if (s.dataset.act === 'user-role') updateUserRole(s.dataset.user, s.value);
+});
+app.addEventListener('submit', async e => {
+  const f = e.target.closest('form[data-form]'); if (!f) return;
+  e.preventDefault();
+  if (f.dataset.form === 'login') await login(f.querySelector('#u').value, f.querySelector('#p').value);
+  else if (f.dataset.form === 'setup') await createAdmin(f);
+  else if (f.dataset.form === 'create-user') await createUser(f);
+  else if (f.dataset.form === 'add-source') await addSource(f);
+  else if (f.dataset.form === 'inquiry') await submitInquiry(f);
+  else if (f.dataset.form === 'note') await addNote(f.dataset.id, f.elements.t.value);
+});
+app.addEventListener('input', e => {
+  if (e.target.id === 'search') { S.q = e.target.value; const l = $('#list'); if (l) l.innerHTML = listHTML(); }
+});
+
+/* ---------- start ---------- */
+(async function init(){
+  S.assign = loadLocal();
+  try { S.users = loadUsers(); S.sources = loadSources(); }
+  catch (e) { S.error = e.message; S.view = 'setup'; render(); return; }
+  let su = null; try { su = sessionStorage.getItem(UKEY); } catch {}
+  const u = S.users.find(x => x.username === su);
+  if (u) { S.user = { username:u.username, name:u.name, role:u.role }; S.view = 'staff'; }
+  else if (location.hash === '#staff') S.view = S.users.length ? 'login' : 'setup';
+  else if (!S.users.length) S.view = 'setup';
+  render();
+  if (S.user) { await refresh(); startTimer(); }
+})();
+})();
+</script>
+</body>
+</html>
