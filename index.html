@@ -136,7 +136,7 @@ const KEY = 'ictdesk.assign.v1', UKEY = 'ictdesk.user', DKEY = 'ictdesk.local.in
 const DEFAULT_OSTICKET_QUEUE_URL = 'https://helpdesk.ursb.go.ug/scp/tickets.php?queue=2';
 const PERMS = { admin:['claim','assign','auto','update_any'], agent:['claim','assign','update_own'], viewer:[] };
 
-const S = { inq:[], assign:{}, users:[], sources:[], osticketQueueUrl:'', user:null, view:'client', tab:'queue', open:null, q:'', error:'', loginError:'', userError:'', sourceError:'', osticketQueueError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
+const S = { inq:[], assign:{}, users:[], sources:[], osticketQueueUrl:'', user:null, view:'client', tab:'queue', open:null, q:'', error:'', notificationError:'', loginError:'', userError:'', sourceError:'', osticketQueueError:'', replyError:'', synced:null, sent:null, sending:false, replying:false };
 
 const can = p => !!S.user && PERMS[S.user.role].includes(p);
 const nameOf = u => (S.users.find(x => x.username === u) || {}).name || u;
@@ -168,7 +168,12 @@ async function push(id, op){
   if (!CONFIG.syncUrl) return { ok:true };
   try {
     const r = await fetch(CONFIG.syncUrl, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: JSON.stringify({ key:CONFIG.syncKey, op, id, record:S.assign[id] }) });
-    return await r.json();
+    const result = await r.json();
+    if (Array.isArray(result.notificationErrors) && result.notificationErrors.length) {
+      S.notificationError = 'Ticket changes were saved, but one or more email notifications failed. Check the Apps Script email addresses, authorization, and quota.';
+      render();
+    }
+    return result;
   } catch { toast('Could not reach the shared store. Change kept on this device only.'); return { ok:false }; }
 }
 
@@ -259,7 +264,7 @@ async function submitInquiry(f){
   const btn = f.querySelector('button.btn'), err = $('#formerr');
   err.textContent = ''; S.sending = true; btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    let ref, emailSent = false, emailError = '';
+    let ref, emailSent = false, emailError = '', notificationErrors = [];
     if (!CONFIG.submitUrl) {
       const list = JSON.parse(localStorage.getItem(DKEY) || '[]');
       if (!Array.isArray(list)) throw new Error('Stored inquiries are invalid. Clear this site’s local storage to continue.');
@@ -274,8 +279,9 @@ async function submitInquiry(f){
       ref = j.ref;
       emailSent = j.emailSent === true;
       emailError = j.emailError || '';
+      notificationErrors = Array.isArray(j.notificationErrors) ? j.notificationErrors : [];
     }
-    S.sent = { ref, local:!CONFIG.submitUrl, emailSent, emailError };
+    S.sent = { ref, local:!CONFIG.submitUrl, emailSent, emailError, notificationErrors };
     render();
   } catch (e) {
     S.sending = false; btn.disabled = false; btn.textContent = 'Send inquiry';
@@ -376,7 +382,9 @@ async function sendClientReply(id, message){
     S.replying = false;
     S.replyError = '';
     render();
-    toast('Reply emailed to the client.');
+    toast(Array.isArray(result.notificationErrors) && result.notificationErrors.length
+      ? 'Reply emailed to the client, but a staff email notification failed.'
+      : 'Reply emailed to the client.');
   } catch (e) {
     S.replying = false;
     S.replyError = String(e.message || e);
@@ -614,6 +622,7 @@ function clientView(){
         <p class="muted">ICT handles requests in the order they arrive and replies to the email address you gave.</p>
         ${sent.local ? '<p class="muted"><small>This inquiry is saved only in this browser. Configure a shared endpoint for staff to access it from other devices.</small></p>' : ''}
         ${sent.local ? '<p class="muted"><small>Email confirmation is unavailable until an Apps Script endpoint is configured.</small></p>' : sent.emailSent ? '<p class="muted"><small>A confirmation email has been sent.</small></p>' : `<p class="err" role="alert">${esc(sent.emailError || 'Your ticket was received, but a confirmation email could not be sent. Please contact ICT.')}</p>`}
+        ${sent.notificationErrors && sent.notificationErrors.length ? '<p class="err" role="alert">Your inquiry was received, but one or more ICT staff notifications could not be sent. The ICT team may need to check its email configuration.</p>' : ''}
         <button class="ghost" data-act="again">Send another inquiry</button></div></div>`
     : `<form class="card formcard" data-form="inquiry" aria-label="Inquiry form">
         <div class="fgrid">
@@ -765,8 +774,9 @@ function staffView(){
   const tabs = [['queue','Waiting (' + q.length + ')'], ...(can('claim') ? [['mine','My tickets (' + active(me).length + ')']] : []), ['all','All'], ...(can('update_any') ? [['users','Manage users'],['sources','Ticket sources']] : [])];
   if (!tabs.some(x => x[0] === S.tab)) S.tab = 'queue';
   const workspace = S.tab === 'users' ? usersView() : S.tab === 'sources' ? sourcesView() : `<div class="split"><div class="list" id="list">${listHTML()}</div>${detailHTML()}</div>`;
-  return `${!CONFIG.sheetCsvUrl && !CONFIG.syncUrl && !S.sources.length ? `<div class="banner"><div class="wrap">Local mode: inquiries, assignments, accounts, and source settings are stored only in this browser. Configure a shared backend for multi-device access.</div></div>` : ''}
+  return `${!CONFIG.sheetCsvUrl && !CONFIG.syncUrl && !S.sources.length ? `<div class="banner"><div class="wrap">Local mode: inquiries, assignments, accounts, and source settings are stored only in this browser. Configure the shared Apps Script backend for multi-device access and lifecycle email notifications.</div></div>` : ''}
     ${S.error ? `<div class="banner bad"><div class="wrap">${esc(S.error)}</div></div>` : ''}
+    ${S.notificationError ? `<div class="banner bad" role="alert"><div class="wrap">${esc(S.notificationError)}</div></div>` : ''}
     <div class="wrap">
       <div class="stats">
         <div class="card stat"><b>${q.length}</b><span>Waiting</span></div>

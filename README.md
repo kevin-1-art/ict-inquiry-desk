@@ -14,9 +14,10 @@ Try it first: serve the folder on `localhost` and open the page. With no endpoin
 1. Create a new Google Sheet (any name).
 2. **Extensions > Apps Script**, paste the contents of `apps-script.gs`.
 3. Change `SECRET` to a long random string.
-4. In Apps Script, select and run `authorizeEmail`, then approve the requested mail permission. This lets the web app send from the Google account that owns the script.
-5. **Deploy > New deployment > Web app**. Execute as **Me**, who has access **Anyone**. Authorize when asked.
-6. Copy the web-app URL.
+4. Configure `STAFF_NOTIFICATION_EMAILS` with administrator/desk addresses and `AGENT_EMAILS` with each agent username and email address. These entries are in `apps-script.gs`; they are not taken from the browser-local user accounts.
+5. In Apps Script, select and run `authorizeEmail`, then approve the requested mail permission. This lets the web app send from the Google account that owns the script.
+6. **Deploy > New deployment > Web app**. Execute as **Me**, who has access **Anyone**. Authorize when asked.
+7. Copy the web-app URL.
 
 In `index.html`, edit the CONFIG block:
 
@@ -24,6 +25,16 @@ In `index.html`, edit the CONFIG block:
 submitUrl: "https://script.google.com/macros/s/.../exec",
 syncUrl:   "https://script.google.com/macros/s/.../exec",   // same URL
 syncKey:   "the same SECRET",
+```
+
+For example, in `apps-script.gs` use your real staff addresses:
+
+```js
+const STAFF_NOTIFICATION_EMAILS = ["ict-admin@example.org"];
+const AGENT_EMAILS = {
+  agent1: "agent1@example.org",
+  agent2: "agent2@example.org"
+};
 ```
 
 After you change `apps-script.gs` later, use **Deploy > Manage deployments > Edit > New version**, or the URL keeps running the old code.
@@ -37,9 +48,11 @@ After you change `apps-script.gs` later, use **Deploy > Manage deployments > Edi
 | `POST {op:"reply", id, message}` | Yes | Emails a staff reply to the address on the ticket and records the sent reply |
 | `GET` / `POST claim, update` | Yes | Shared assignments, with a check that stops two agents taking the same ticket |
 
-New client inquiries receive an email receipt from the script owner's Google account. Staff can email clients from a ticket's **Email replies** section; internal **Notes** remain private. A saved inquiry remains saved if its receipt email fails, and the client sees a warning instead of a false email-success message.
+With the configured email addresses, the script sends a client receipt and alerts staff/agents when an inquiry is submitted; it notifies the newly assigned/reassigned agent and configured staff addresses when tickets are assigned or returned to the queue; it emails clients and staff when ticket status changes (including resolution); it notifies staff of private internal notes without sending those notes to clients; and it notifies staff when an agent emails a client reply. Staff can email clients from a ticket's **Email replies** section. A saved inquiry or assignment remains saved if email delivery fails; the app reports notification failures rather than claiming all emails succeeded. Email is sent from the Google account that owns the script, subject to its authorization and daily quota. These lifecycle alerts run only for tickets saved through the configured Apps Script endpoint; browser-local tickets and unsupported external sources cannot send them.
 
-After updating an existing Apps Script deployment, go to **Deploy > Manage deployments > Edit > New version**. If the new mail permission was not granted, run `authorizeEmail` in the Apps Script editor and approve it, then deploy the new version. Google Apps Script daily recipient quotas apply.
+If no valid staff address is configured, staff alerts cannot be delivered. For each assigned agent, set the matching username in `AGENT_EMAILS`; assignment notifications report an error when that agent has no mapped address.
+
+After updating an existing Apps Script deployment, go to **Deploy > Manage deployments > Edit > New version**. If the new mail permission was not granted, run `authorizeEmail` in the Apps Script editor and approve it, then deploy the new version. Google Apps Script daily recipient quotas apply; notifications to each configured recipient consume quota.
 
 Protection on the public submit action: required-field and email checks, length limits, a hidden honeypot field, one submission per email per 30 seconds, a desk-wide cap of 120 per hour, and formulas in typed text are neutralised before they reach the Sheet. Edit the constants at the top of the script to change the limits.
 

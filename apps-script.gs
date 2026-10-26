@@ -7,7 +7,8 @@
  * Copy the web-app URL into CONFIG.submitUrl AND CONFIG.syncUrl, and the same secret into CONFIG.syncKey.
  *
  * Anyone may POST {op:"submit"} (the client form). Reading inquiries, sending client
- * replies, or touching assignments needs the secret. Inquiries go on a sheet called "Inquiries"; do not
+ * replies, or touching assignments needs the secret. Staff/agent email recipients are
+ * configured below. Inquiries go on a sheet called "Inquiries"; do not
  * delete or re-sort its rows, because ticket numbers (INQ-0001...) follow row order.
  *
  * Assignments keep one row per inquiry on a sheet called "Assignments" and refuse a
@@ -20,6 +21,8 @@ const INQ_SHEET = 'Inquiries';
 const PRIORITIES = ['Low', 'Normal', 'High', 'Urgent'];
 const MAX_PER_HOUR = 120;     // whole-desk limit
 const MIN_SECONDS_PER_EMAIL = 30;
+const STAFF_NOTIFICATION_EMAILS = []; // Add admin/desk notification addresses here.
+const AGENT_EMAILS = {}; // Map usernames to email addresses, e.g. { "agent1": "agent1@example.org" }.
 
 function sheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -47,6 +50,77 @@ function sendEmail_(to, subject, body) {
     Logger.log('Email delivery failed: ' + err.message);
     return { emailSent: false, emailError: 'Email delivery failed. Check the script authorization and daily email quota.' };
   }
+}
+
+function sendNotifications_(recipients, subject, body) {
+  const unique = Array.from(new Set((recipients || []).map(function (email) {
+    return String(email || '').trim().toLowerCase();
+  }).filter(function (email) {
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+  })));
+  const failures = [];
+  unique.forEach(function (email) {
+    const result = sendEmail_(email, subject, body);
+    if (!result.emailSent) failures.push(result.emailError);
+  });
+  return failures;
+}
+
+function staffRecipients_(agents) {
+  const recipients = STAFF_NOTIFICATION_EMAILS.slice();
+  Object.keys(AGENT_EMAILS).forEach(function (username) {
+    recipients.push(AGENT_EMAILS[username]);
+  });
+  (Array.isArray(agents) ? agents : [agents]).forEach(function (agent) {
+    if (agent && AGENT_EMAILS[agent]) recipients.push(AGENT_EMAILS[agent]);
+  });
+  return recipients;
+}
+
+function notifyStaff_(subject, body, agents) {
+  const requestedAgents = Array.isArray(agents) ? agents : [agents];
+  const failures = requestedAgents.filter(function (agent) {
+    return agent && !AGENT_EMAILS[agent];
+  }).map(function (agent) {
+    return 'No email address is configured for assigned agent "' + agent + '".';
+  });
+  const recipients = staffRecipients_(requestedAgents);
+  if (!recipients.some(function (email) {
+    return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim());
+  })) {
+    failures.push('No valid staff notification addresses are configured in apps-script.gs.');
+    return failures;
+  }
+  return failures.concat(sendNotifications_(recipients, subject, body));
+}
+
+function inquiryFor_(id) {
+  const match = /^INQ-(\d{4,})$/.exec(String(id || ''));
+  if (!match) return null;
+  const row = Number(match[1]) + 1;
+  const rows = inqSheet_().getDataRange().getValues();
+  if (row < 2 || row >= rows.length + 1) return null;
+  return { row: rows[row - 1], index: row };
+}
+
+function ticketSubject_(inquiry) {
+  return String(inquiry[4] || 'ICT inquiry').replace(/[\r\n]+/g, ' ').slice(0, 150);
+}
+
+function notifyClientStatus_(id, inquiry, status) {
+  const email = String(inquiry[2] || '').trim();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return ['Client notification could not be sent because the ticket email address is invalid.'];
+  }
+  const subject = ticketSubject_(inquiry);
+  const resolved = status === 'Resolved';
+  const heading = resolved ? 'Your ICT inquiry has been resolved' : 'Your ICT inquiry status was updated';
+  const body = 'Hello ' + String(inquiry[1] || '') + ',\n\n' +
+    'The status of your ICT inquiry "' + subject + '" (' + id + ') is now ' + status + '.\n\n' +
+    (resolved ? 'If you still need help, please submit a new inquiry and include this reference.\n\n' : '') +
+    'ICT Inquiry Desk';
+  const result = sendEmail_(email, heading + ': ' + id, body);
+  return result.emailSent ? [] : [result.emailError];
 }
 
 // Stop spreadsheet formulas being run from typed text.
@@ -86,7 +160,11 @@ function submit_(b) {
     emailSubject: 'ICT inquiry received: ' + ref,
     emailBody: 'Hello ' + name + ',\n\nWe received your ICT inquiry "' + mailSubject + '".\n' +
       'Your reference number is ' + ref + '. Our team will follow up at this email address.\n\n' +
-      'Please keep this reference for future correspondence.\n\nICT Inquiry Desk'
+      'Please keep this reference for future correspondence.\n\nICT Inquiry Desk',
+    staffSubject: 'New ICT inquiry: ' + ref + ' — ' + mailSubject,
+    staffBody: 'A new ICT inquiry was submitted.\n\nReference: ' + ref + '\nName: ' + name +
+      '\nEmail: ' + email + '\nPriority: ' + priority + '\nSubject: ' + mailSubject +
+      '\n\nMessage:\n' + message
   };
 }
 
@@ -125,9 +203,12 @@ function doPost(e) {
       const mail = sendEmail_(result.emailTo, result.emailSubject, result.emailBody);
       result.emailSent = mail.emailSent;
       result.emailError = mail.emailError || '';
+      result.notificationErrors = notifyStaff_(result.staffSubject, result.staffBody);
       delete result.emailTo;
       delete result.emailSubject;
       delete result.emailBody;
+      delete result.staffSubject;
+      delete result.staffBody;
     }
     return out_(result);
   }
@@ -145,7 +226,7 @@ function doPost(e) {
       const inquiry = inquiries[inquiryIndex];
       const email = String(inquiry[2] || '').trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return out_({ ok: false, error: 'invalid_email' });
-      const subject = String(inquiry[4] || 'ICT inquiry').replace(/[\r\n]+/g, ' ').slice(0, 150);
+      const subject = ticketSubject_(inquiry);
       const mail = sendEmail_(email, 'ICT update for ' + id + ': ' + subject,
         'Hello ' + String(inquiry[1] || '') + ',\n\n' +
         'The ICT team has replied to your inquiry "' + subject + '" (' + id + '):\n\n' +
@@ -170,23 +251,70 @@ function doPost(e) {
       const line = [id, record.agent || '', record.status || '', record.updated, JSON.stringify(record)];
       if (assignmentRow > 0) sheet_().getRange(assignmentRow, 1, 1, 5).setValues([line]);
       else sheet_().appendRow(line);
-      return out_({ ok: true, emailSent: true, record: record });
+      const notificationErrors = notifyStaff_(
+        'Client reply sent: ' + id,
+        'A client reply was sent for ticket ' + id + ' "' + subject + '".\nReplied by: ' +
+          String(b.by || 'ICT staff') + '\n\n' + message,
+        record.agent || ''
+      );
+      return out_({ ok: true, emailSent: true, record: record, notificationErrors: notificationErrors });
     }
     const s = sheet_();
     const v = s.getDataRange().getValues();
     let row = -1;
     for (let i = 1; i < v.length; i++) { if (v[i][0] === b.id) { row = i + 1; break; } }
 
+    let previous = {};
+    if (row > 0) {
+      try { previous = JSON.parse(v[row - 1][4]) || {}; } catch (err) {}
+    }
     if (b.op === 'claim' && row > 0) {
-      let existing = {};
-      try { existing = JSON.parse(v[row - 1][4]); } catch (err) {}
-      if (existing.agent) return out_({ ok: false, conflict: true, record: existing });
+      if (previous.agent) return out_({ ok: false, conflict: true, record: previous });
     }
 
     const r = b.record || {};
     const line = [b.id, r.agent || '', r.status || '', r.updated || 0, JSON.stringify(r)];
     if (row > 0) s.getRange(row, 1, 1, 5).setValues([line]); else s.appendRow(line);
-    return out_({ ok: true });
+    const ticket = inquiryFor_(b.id);
+    const notifications = [];
+    if (ticket) {
+      const subject = ticketSubject_(ticket.row);
+      const previousAgent = String(previous.agent || '');
+      const nextAgent = String(r.agent || '');
+      const previousStatus = String(previous.status || 'Open');
+      const nextStatus = String(r.status || 'Open');
+      const notes = Array.isArray(r.notes) ? r.notes : [];
+      const previousNotes = Array.isArray(previous.notes) ? previous.notes : [];
+
+      if (nextAgent !== previousAgent && (nextAgent || previousAgent)) {
+        const assignmentAction = !nextAgent ? 'returned to the queue' : previousAgent ? 'reassigned' : 'assigned';
+        notifications.push.apply(notifications, notifyStaff_(
+          'ICT inquiry ' + assignmentAction + ': ' + b.id,
+          'Ticket ' + b.id + ' "' + subject + '" was ' + assignmentAction +
+            (nextAgent ? ' to ' + nextAgent : '') + '.\nStatus: ' + nextStatus,
+          [previousAgent, nextAgent]
+        ));
+      }
+      if (nextStatus !== previousStatus) {
+        notifications.push.apply(notifications, notifyClientStatus_(b.id, ticket.row, nextStatus));
+        notifications.push.apply(notifications, notifyStaff_(
+          'ICT inquiry status changed: ' + b.id,
+          'Ticket ' + b.id + ' "' + subject + '" changed status from ' + previousStatus + ' to ' + nextStatus +
+            (nextAgent ? '.\nAssigned agent: ' + nextAgent : ''),
+          nextAgent
+        ));
+      }
+      if (notes.length > previousNotes.length) {
+        const note = notes[notes.length - 1] || {};
+        notifications.push.apply(notifications, notifyStaff_(
+          'Internal note added: ' + b.id,
+          'An internal note was added to ticket ' + b.id + ' "' + subject + '".\nBy: ' +
+            String(note.by || 'ICT staff') + '\n\n' + String(note.text || ''),
+          nextAgent
+        ));
+      }
+    }
+    return out_({ ok: true, notificationErrors: notifications });
   } finally {
     lock.releaseLock();
   }
